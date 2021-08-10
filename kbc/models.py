@@ -73,7 +73,8 @@ class KBCModel(nn.Module, ABC):
 
                 c_begin += chunk_size
         return ranks
-    
+
+
 # The Score of 5*E model
 class FiveStarE(KBCModel):
     def __init__(
@@ -84,10 +85,16 @@ class FiveStarE(KBCModel):
         self.sizes = sizes
         self.rank = rank
 
-        self.embeddings = nn.ModuleList([
-            nn.Embedding(s, 8 * rank, sparse=True)
-            for s in sizes[:2]
-        ])
+        # self.embeddings = nn.ModuleList([
+        #     nn.Embedding(s, 8 * rank, sparse=True)
+        #     for s in sizes[:2]
+        # ])
+
+        self.entity_embedding = nn.Embedding(sizes[0], 2 * rank, sparse=True)
+        self.relation_embedding = nn.Embedding(sizes[1], 8 * rank, sparse=True)
+
+        self.embeddings = nn.ModuleList([self.entity_embedding, self.relation_embedding])
+
         self.embeddings[0].weight.data *= init_size
         self.embeddings[1].weight.data *= init_size
 
@@ -96,10 +103,26 @@ class FiveStarE(KBCModel):
         rel = self.embeddings[1](x[:, 1])
         rhs = self.embeddings[0](x[:, 2])
 
-        re_head, im_head = lhs[:, :self.rank], lhs[:, self.rank:2*self.rank]
-        re_relation_a, im_relation_a, re_relation_b, im_relation_b, re_relation_c, im_relation_c, re_relation_d, im_relation_d = rel[:, :self.rank], rel[:, self.rank:2*self.rank], rel[:, 2*self.rank:3*self.rank], rel[:, 3*self.rank:4*self.rank], rel[:, 4*self.rank:5*self.rank], rel[:, 5*self.rank:6*self.rank], rel[:, 6*self.rank:7*self.rank], rel[:, 7*self.rank:]
+        re_head, im_head = lhs[:, :self.rank], lhs[:, self.rank:2 * self.rank]
+        re_relation_a, im_relation_a, re_relation_b, im_relation_b, re_relation_c, im_relation_c, re_relation_d, im_relation_d = rel[
+                                                                                                                                 :,
+                                                                                                                                 :self.rank], rel[
+                                                                                                                                              :,
+                                                                                                                                              self.rank:2 * self.rank], rel[
+                                                                                                                                                                        :,
+                                                                                                                                                                        2 * self.rank:3 * self.rank], rel[
+                                                                                                                                                                                                      :,
+                                                                                                                                                                                                      3 * self.rank:4 * self.rank], rel[
+                                                                                                                                                                                                                                    :,
+                                                                                                                                                                                                                                    4 * self.rank:5 * self.rank], rel[
+                                                                                                                                                                                                                                                                  :,
+                                                                                                                                                                                                                                                                  5 * self.rank:6 * self.rank], rel[
+                                                                                                                                                                                                                                                                                                :,
+                                                                                                                                                                                                                                                                                                6 * self.rank:7 * self.rank], rel[
+                                                                                                                                                                                                                                                                                                                              :,
+                                                                                                                                                                                                                                                                                                                              7 * self.rank:]
 
-        re_tail, im_tail = rhs[:, :self.rank], rhs[:, self.rank:2*self.rank]
+        re_tail, im_tail = rhs[:, :self.rank], rhs[:, self.rank:2 * self.rank]
 
         re_score_a = re_head * re_relation_a - im_head * im_relation_a
         im_score_a = re_head * im_relation_a + im_head * re_relation_a
@@ -127,17 +150,32 @@ class FiveStarE(KBCModel):
             (up_im) * im_tail,
             1, keepdim=True
         )
-    
+
     def forward(self, x):
         lhs = self.embeddings[0](x[:, 0])
         rel = self.embeddings[1](x[:, 1])
         rhs = self.embeddings[0](x[:, 2])
 
-        re_head, im_head = lhs[:, :self.rank], lhs[:, self.rank:2*self.rank]
-        re_relation_a, im_relation_a, re_relation_b, im_relation_b, re_relation_c, im_relation_c, re_relation_d, im_relation_d = rel[:, :self.rank], rel[:, self.rank:2*self.rank], rel[:, 2*self.rank:3*self.rank], rel[:, 3*self.rank:4*self.rank], rel[:, 4*self.rank:5*self.rank], rel[:, 5*self.rank:6*self.rank], rel[:, 6*self.rank:7*self.rank], rel[:, 7*self.rank:]
+        re_head, im_head = lhs[:, :self.rank], lhs[:, self.rank:2 * self.rank]
+        re_relation_a, im_relation_a, re_relation_b, im_relation_b, re_relation_c, im_relation_c, re_relation_d, im_relation_d = rel[
+                                                                                                                                 :,
+                                                                                                                                 :self.rank], rel[
+                                                                                                                                              :,
+                                                                                                                                              self.rank:2 * self.rank], rel[
+                                                                                                                                                                        :,
+                                                                                                                                                                        2 * self.rank:3 * self.rank], rel[
+                                                                                                                                                                                                      :,
+                                                                                                                                                                                                      3 * self.rank:4 * self.rank], rel[
+                                                                                                                                                                                                                                    :,
+                                                                                                                                                                                                                                    4 * self.rank:5 * self.rank], rel[
+                                                                                                                                                                                                                                                                  :,
+                                                                                                                                                                                                                                                                  5 * self.rank:6 * self.rank], rel[
+                                                                                                                                                                                                                                                                                                :,
+                                                                                                                                                                                                                                                                                                6 * self.rank:7 * self.rank], rel[
+                                                                                                                                                                                                                                                                                                                              :,
+                                                                                                                                                                                                                                                                                                                              7 * self.rank:]
 
-
-        re_tail, im_tail = rhs[:, :self.rank], rhs[:, self.rank:2*self.rank]
+        re_tail, im_tail = rhs[:, :self.rank], rhs[:, self.rank:2 * self.rank]
 
         re_score_a = re_head * re_relation_a - im_head * im_relation_a
         im_score_a = re_head * im_relation_a + im_head * re_relation_a
@@ -160,28 +198,45 @@ class FiveStarE(KBCModel):
         up_im = torch.div(re_score_top * im_score_dn - im_score_top * re_score_dn, dn_re)
 
         to_score = self.embeddings[0].weight
-        to_score = to_score[:, :self.rank], to_score[:, self.rank:2*self.rank]
+        to_score = to_score[:, :self.rank], to_score[:, self.rank:2 * self.rank]
 
         return (
-            (up_re) @ to_score[0].transpose(0, 1) +
-            (up_im) @ to_score[1].transpose(0, 1)
-        ), (
-            torch.sqrt(re_head ** 2 + im_head ** 2),
-            torch.sqrt(re_relation_a ** 2 + im_relation_a ** 2 + re_relation_c ** 2 + im_relation_c ** 2 + re_relation_b ** 2 + im_relation_b ** 2 + re_relation_d ** 2 + im_relation_d ** 2),
-            torch.sqrt(re_tail ** 2 + im_tail ** 2)
-        )
-    
+                       (up_re) @ to_score[0].transpose(0, 1) +
+                       (up_im) @ to_score[1].transpose(0, 1)
+               ), (
+                   torch.sqrt(re_head ** 2 + im_head ** 2),
+                   torch.sqrt(
+                       re_relation_a ** 2 + im_relation_a ** 2 + re_relation_c ** 2 + im_relation_c ** 2 + re_relation_b ** 2 + im_relation_b ** 2 + re_relation_d ** 2 + im_relation_d ** 2),
+                   torch.sqrt(re_tail ** 2 + im_tail ** 2)
+               )
+
     def get_rhs(self, chunk_begin: int, chunk_size: int):
         return self.embeddings[0].weight.data[
-            chunk_begin:chunk_begin + chunk_size,:2*self.rank
-        ].transpose(0, 1)
+               chunk_begin:chunk_begin + chunk_size, :2 * self.rank
+               ].transpose(0, 1)
 
     def get_queries(self, queries: torch.Tensor):
         lhs = self.embeddings[0](queries[:, 0])
         rel = self.embeddings[1](queries[:, 1])
 
-        re_head, im_head = lhs[:, :self.rank], lhs[:, self.rank:2*self.rank]
-        re_relation_a, im_relation_a, re_relation_b, im_relation_b, re_relation_c, im_relation_c, re_relation_d, im_relation_d = rel[:, :self.rank], rel[:, self.rank:2*self.rank], rel[:, 2*self.rank:3*self.rank], rel[:, 3*self.rank:4*self.rank], rel[:, 4*self.rank:5*self.rank], rel[:, 5*self.rank:6*self.rank], rel[:, 6*self.rank:7*self.rank], rel[:, 7*self.rank:]
+        re_head, im_head = lhs[:, :self.rank], lhs[:, self.rank:2 * self.rank]
+        re_relation_a, im_relation_a, re_relation_b, im_relation_b, re_relation_c, im_relation_c, re_relation_d, im_relation_d = rel[
+                                                                                                                                 :,
+                                                                                                                                 :self.rank], rel[
+                                                                                                                                              :,
+                                                                                                                                              self.rank:2 * self.rank], rel[
+                                                                                                                                                                        :,
+                                                                                                                                                                        2 * self.rank:3 * self.rank], rel[
+                                                                                                                                                                                                      :,
+                                                                                                                                                                                                      3 * self.rank:4 * self.rank], rel[
+                                                                                                                                                                                                                                    :,
+                                                                                                                                                                                                                                    4 * self.rank:5 * self.rank], rel[
+                                                                                                                                                                                                                                                                  :,
+                                                                                                                                                                                                                                                                  5 * self.rank:6 * self.rank], rel[
+                                                                                                                                                                                                                                                                                                :,
+                                                                                                                                                                                                                                                                                                6 * self.rank:7 * self.rank], rel[
+                                                                                                                                                                                                                                                                                                                              :,
+                                                                                                                                                                                                                                                                                                                              7 * self.rank:]
 
         re_score_a = re_head * re_relation_a - im_head * im_relation_a
         im_score_a = re_head * im_relation_a + im_head * re_relation_a
@@ -241,8 +296,8 @@ class CP(KBCModel):
 
     def get_rhs(self, chunk_begin: int, chunk_size: int):
         return self.rhs.weight.data[
-            chunk_begin:chunk_begin + chunk_size
-        ].transpose(0, 1)
+               chunk_begin:chunk_begin + chunk_size
+               ].transpose(0, 1)
 
     def get_queries(self, queries: torch.Tensor):
         return self.lhs(queries[:, 0]).data * self.rel(queries[:, 1]).data
@@ -291,18 +346,18 @@ class ComplEx(KBCModel):
         to_score = self.embeddings[0].weight
         to_score = to_score[:, :self.rank], to_score[:, self.rank:]
         return (
-            (lhs[0] * rel[0] - lhs[1] * rel[1]) @ to_score[0].transpose(0, 1) +
-            (lhs[0] * rel[1] + lhs[1] * rel[0]) @ to_score[1].transpose(0, 1)
-        ), (
-            torch.sqrt(lhs[0] ** 2 + lhs[1] ** 2),
-            torch.sqrt(rel[0] ** 2 + rel[1] ** 2),
-            torch.sqrt(rhs[0] ** 2 + rhs[1] ** 2)
-        )
+                       (lhs[0] * rel[0] - lhs[1] * rel[1]) @ to_score[0].transpose(0, 1) +
+                       (lhs[0] * rel[1] + lhs[1] * rel[0]) @ to_score[1].transpose(0, 1)
+               ), (
+                   torch.sqrt(lhs[0] ** 2 + lhs[1] ** 2),
+                   torch.sqrt(rel[0] ** 2 + rel[1] ** 2),
+                   torch.sqrt(rhs[0] ** 2 + rhs[1] ** 2)
+               )
 
     def get_rhs(self, chunk_begin: int, chunk_size: int):
         return self.embeddings[0].weight.data[
-            chunk_begin:chunk_begin + chunk_size
-        ].transpose(0, 1)
+               chunk_begin:chunk_begin + chunk_size
+               ].transpose(0, 1)
 
     def get_queries(self, queries: torch.Tensor):
         lhs = self.embeddings[0](queries[:, 0])

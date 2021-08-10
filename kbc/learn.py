@@ -15,7 +15,8 @@ from datasets import Dataset
 from kbc.models import FiveStarE, CP, ComplEx
 from kbc.regularizers import F2, N3
 from kbc.optimizers import KBCOptimizer
-
+import numpy as np
+import os
 
 big_datasets = ['nations']
 datasets = big_datasets
@@ -33,6 +34,12 @@ models = ['FiveStarE']
 parser.add_argument(
     '--model', choices=models,
     help="Model in {}".format(models)
+)
+
+save_path = './FiveStarE_embeddings/'
+parser.add_argument(
+    '--save_path', default='./FiveStarE_embeddings/',
+    help="Path to save embeddings"
 )
 
 regularizers = ['N3']
@@ -125,7 +132,12 @@ def avg_both(mrrs: Dict[str, float], hits: Dict[str, torch.FloatTensor]):
 
 
 cur_loss = 0
+best_valid = 0
 curve = {'train': [], 'valid': [], 'test': []}
+
+if not os.path.exists(args.save_path):
+    os.makedirs(args.save_path)
+
 for e in range(args.max_epochs):
     cur_loss = optimizer.epoch(examples)
 
@@ -134,13 +146,27 @@ for e in range(args.max_epochs):
             avg_both(*dataset.eval(model, split, -1 if split != 'train' else 50000))
             for split in ['valid', 'test', 'train']
         ]
-        temp_model = model
         curve['valid'].append(valid)
         curve['test'].append(test)
         curve['train'].append(train)
 
         print("\t TRAIN: ", train)
         print("\t VALID : ", valid)
+        if valid['hits@[1,3,10]'][2] > best_valid:
+            best_valid = valid['hits@[1,3,10]'][2]
+            entity_embedding = model.entity_embedding.weight.detach().cpu().numpy()
+            np.save(
+                os.path.join(args.save_path, 'entity_embedding'),
+                entity_embedding,
+                'w'
+            )
+
+            relation_embedding = model.relation_embedding.weight.detach().cpu().numpy()
+            np.save(
+                os.path.join(args.save_path, 'relation_embedding'),
+                relation_embedding,
+                'w'
+            )
 
 results = dataset.eval(model, 'test', -1)
 print("\n\nTEST : ", results)
