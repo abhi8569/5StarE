@@ -158,15 +158,15 @@ for e in range(args.max_epochs):
             np.save(
                 os.path.join(args.save_path, 'entity_embedding'),
                 entity_embedding,
-                'w'
             )
 
             relation_embedding = model.relation_embedding.weight.detach().cpu().numpy()
             np.save(
                 os.path.join(args.save_path, 'relation_embedding'),
                 relation_embedding,
-                'w'
             )
+
+            print("Embeddings saved!")
 
 results = dataset.eval(model, 'test', -1)
 print("\n\nTEST : ", results)
