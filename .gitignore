@@ -1,0 +1,3 @@
+./kbc/data/*
+./kbc/__pycache__/*
+./kbc/src_data/*
